@@ -1,0 +1,357 @@
+(* Lire soigneusement L'INTÉGRALITÉ du sujet et des énoncés. *)
+
+(* Il n'est pas nécessaire de tout faire pour avoir 20, il faut cependant toucher à tout. *)
+
+(* Une copie aux hypothèses nommées automatiquement sera sanctionnée *)
+
+
+(* Les SEULES tactiques autorisées (mais PAS FORCÉMENT NÉCESSAIRES) sont :
+
+DÉDUCTION/DÉCOMPOSITION EN CAS
+
+- clear (avec un nom : affaiblissement, usage exceptionnel...)
+
+- assumption (axiome de la déduction).
+
+- intro (avec nom : introduction de la flèche et du quantificateur universel).
+
+- apply (avec nom de l'hypothèse ou du théorème : élimination de la FLÈCHE).
+        (éventuellement "in" une hypothèse).
+
+UNE UTILISATION DE apply QUI N'EST PAS UNE ÉLIMINATION DE FLÈCHE SERA SANCTIONNÉE.
+
+
+- split (introduction du /\).
+
+- left ou right (introduction du \/).
+
+- destruct (nom de l'hypothèse/de l'objet à décomposer : 
+               + si c'est un \/ alors élimination du \/
+               + si c'est un /\ alors décompose le /\ en hypothèse (deux nouvelles hyp)
+               + si c'est un existentiel alors introduit l'existentiel en hypothèse (donne un nom)
+               avec "as [ noms des hypothèses introduites dans chaque | branche | ...]".
+
+- exists (désignation de l'élément correct : introduction de l'existentiel).
+
+
+CALCUL
+
+- simpl (étape de calcul si possible, éventuellement "in " une hypothèse)
+
+
+ÉGALITÉ
+
+- rewrite (direction -> ou <-,  nom de l'égalité (hypothèse ou théorème) : elimination de l'ÉGALITÉ, éventuellement "in " une hypothèse)
+
+- reflexivity (introduction de l'égalité).
+
+- discriminate (clôture du but si une hypothèse est une égalité avec deux constructeurs différents)
+
+
+INDUCTION
+
+- induction (nom de l'objet, application du principe d'induction)
+               avec "as [ noms des hypothèses introduites dans chaque | branche | ...]".
+
+
+NOTATIONS
+
+- unfold (pour déplier une définition si besoin)
+On rappelle que "not A" est juste une notation pour A -> False (qu'on peut voir en utilisant "unfold not").
+
+
+
+(**** RAPPELS IMPORTANTS POUR LA PARTIE PREMIER ORDRE ****)
+
+Les implications et quantifications universelles peuvent être considérées comme des "fonctions", on peut donc les éliminer en hypothèse en leur donnant des paramètres : 
+- si Ha est P et si Himp est P -> Q, alors (Himp Ha) est Q, 
+- si H est forall x, P(x), alors (H 6) est P(6), etc.
+
+On pourra également poser en hypothèses des spécialisations d'autres hypothèses grâce à 
+pose (spécialisation sous forme d'application comme ci-dessus) as nom-de-la-nouvelle-hypothèse.
+  
+DES EXEMPLES DE PREUVES SONT DONNÉS PLUS BAS.
+ *)
+
+
+
+
+(* Ne pas faire la question filter_and. *)
+
+
+(* Les questions sont indiquées par QUESTION *)
+
+
+
+(* REMPLACEZ LES Admitted PAR Qed. 
+
+***********************************************
+UN EXERCICE AVEC Admitted NE SERA PAS COMPTÉ.
+***********************************************
+Ne laissez Admitted que si vous voulez abandonner l'exercice courant pour passer à la suite. *)
+
+Require Import Bool.
+Require Import Arith.
+Require Import List.
+Export ListNotations.
+Lemma beq_nat_true : forall n m : nat, (n =? m) = true -> n = m.
+Proof. apply Nat.eqb_eq. Qed.
+
+Section Propositionnel.
+Context (A B C D E F : Prop).
+
+
+(* UN PEU DE PROPOSITIONNEL *************************************************************************************************)
+
+(* QUESTION *)
+Lemma question1 : ((A -> B) -> A -> C) -> (A -> B -> C).
+Proof.
+intro ab.
+intro a .
+intro b.
+apply ab.
+* intro aa.
+assumption.
+* assumption.
+Qed.
+
+(* QUESTION *)
+Lemma question2 : (B -> A) -> (((B -> A) -> C) \/ B) -> (A/\B -> C) -> C.
+Proof.
+intro ba.
+intro bac.
+intro abc.
+destruct bac as [n1|n2].
+*apply n1.
+assumption.
+*apply abc.
+split.
+** apply ba.
+assumption.
+**assumption.
+Qed.
+
+
+(* QUESTION *)
+Lemma question3 : ((A \/ B) -> C) -> ((B -> C) /\ (A -> C)).
+Proof.
+split.
+*intro b.
+apply H.
+right.
+assumption.
+* intro a.
+apply H.
+left .
+assumption.
+Qed.
+
+End Propositionnel.
+
+(* UN PEU DE PREMIER ORDRE *********************************************************************************************)
+
+Section PremierOrdre.
+
+Context (A B C D : nat -> Prop). (* Les prédicats *)
+Context  (e f : nat).            (* des termes *)
+
+Lemma question4 : (forall x, A(x) -> C(0)) -> ((exists x, A(x)) -> C(0)).
+Proof.
+intro ac.
+intro aco.
+Admitted.
+
+(* QUESTION *)
+Lemma question5: (exists z, C(z)) ->  (forall x, C(x) -> A(x) -> D(x)) -> (forall x, A(x)) -> exists y, D(y).
+Proof.
+Admitted.
+
+
+End PremierOrdre.
+
+
+(* UN PEU DE PREUVES DE PROGRAMME *******************************************************************************)
+
+(*---------------------------------------------------------------------*)
+(* On reprend la fonction appartient censée retourner true si un élément e
+appartient à une liste l (et seulement dans ce cas). *)
+Fixpoint appartient e l :=
+  match l with
+  | [] => false
+  | h::tl => (h=?e)||appartient e tl
+  end.
+
+(* On reprend la fonction filter censée retourner la liste des éléments d'une
+liste l pour lesquels l'application d'une fonction p retourne true (et
+seulement eux). *)
+Fixpoint filter (p : nat -> bool) (l : list nat) :  list nat :=
+  match l with
+  | [] => []
+  | h::tl => match (p h) with true => h:: (filter p tl) | false => filter p tl end
+  end.
+
+(* On reprend la fonction ex censée retourner true s'il existe un élément
+dans une liste l tel que l'application d'une fonction p sur cet
+élément retourne true (et seulement dans ce cas). *)
+Fixpoint ex (p : nat -> bool) (l : list nat) : bool :=
+  match l with
+  | [] => false
+  | h::tl => match (p h) with false => (ex p tl) | true => true end
+  end.
+(*---------------------------------------------------------------------*)
+
+(* QUESTION *)
+(* Soit (fun x => x=?e) la fonction qui retourne true si et seulement
+   si la comparaison de son paramètre à e retourne true.
+
+   Énoncer en complétant le lemme suivant que appartient retourne true
+   sur toute liste l et tout élement e SEULEMENT SI ex retourne true
+   pour l et la fonction (fun x => x=?e).
+
+   Prouver ce lemme.*)
+
+Lemma app_ex : (forall n m, n=?m = true \/ n=?m = false) -> forall (l : list nat), forall (e : nat), 
+appartient e l = true ->ex (fun x => x=?e) l = true /\ ex (fun x => x=?e) l = true -> appartient e l = true.
+Proof.
+intro n.
+intro liste.
+intro elem.
+intro appele.
+intro h.
+induction liste as [|v ll].
+* simpl.
+discriminate.
+*simpl.
+rewrite <- appele.
+simpl.
+Admitted.
+
+(* QUESTION *)
+
+(* Soit (fun x => x=?e) la fonction qui retourne true si et seulement
+   si la comparaison de son paramètre à e retourne true.
+
+   Énoncer en complétant le lemme suivant que appartient retourne true
+   sur toute liste l et tout élément e SI ex retourne true pour l et la
+   fonction (fun x => x=?e).
+
+   Prouver ce lemme.*) 
+
+(* On pourra avoir besoin du lemme
+orb_true_intro :  forall b1 b2 : bool, b1 = true \/ b2 = true -> b1 || b2 = true
+ *)
+Lemma ex_app : (forall n m, n=?m = true \/ n=?m = false) -> forall (l :list nat), forall (e : nat), 
+appartient e l = true -> ex (fun x => x=?e) l = true.
+Proof.
+intro nn.
+intro liste.
+intro elem.
+induction liste as [|v ll].
+*simpl.
+discriminate.
+*simpl.
+rewrite -> IHll.
+**pose (orb_true_intro (v =? elem)  (appartient elem ll)) as nh.
+rewrite <- nh.
+***
+Admitted. 
+
+
+(* QUESTION *)
+(* Prouver le lemme suivant : *)
+Lemma filter_and :
+  forall p, forall q,
+    (forall n, p n = true \/ p n = false)
+    -> (forall n, q n = true \/ q n = false)
+    -> forall l, filter p (filter q l) = filter (fun x => (p x) && (q x)) l.
+Proof.
+intro pnt.
+intro ql.
+intro no.
+intro nb.
+intro lis.
+induction lis as [|v ll].
+*simpl.
+reflexivity.
+*simpl.
+rewrite <- IHll.
+simpl.
+Admitted.
+
+           
+(* QUESTION *)
+(* Énoncer en complétant le lemme suivant que soit le filtre (par
+   filter p) d'une liste est vite soit le résultat de ex p sur son
+   filtre (par filter) pour p retourne true.
+
+   Prouver ce lemme.  *)         
+Lemma filter_ex :
+  forall p, (forall n, p n = true \/ p n = false) ->
+   (*compléter en remplaçant False ici *) False. 
+Proof.
+Admitted.
+ 
+
+(* QUESTION *)
+(* Énoncer en complétant le lemme suivant que ex retourne true
+   SEULEMENT S'il existe un élément de x (c'est-à-dire pour lequel
+   appartient retourne true) sur lequel l'application de p retourne
+   true.
+
+   Prouver ce lemme.  *)
+
+(* On pourra éventuellement avoir besoin des lemmes 
+Nat.eqb_refl : forall x : nat, (x =? x) = true
+orb_true_r :  forall b : bool, b || true = true 
+ *)
+Lemma ex_exist :
+  forall p, (forall n, p n = true \/ p n = false) ->
+ (*compléter en remplaçant False ici *) False. 
+Proof.
+Admitted.
+
+
+
+
+
+
+(*************************************************)
+(* EXEMPLES DE PREUVES                           *)
+(* 
+"rewrite" suivi de " <- " ou " -> " suivi de "(addassoc arg1 arg2 arg3)"
+"rewrite" suivi de " <- " ou " -> " suivi de "(addcom arg1 arg2)"
+*)
+
+Lemma addn0 : forall n, n + 0 = n.
+Proof.
+  induction n as [| n' IHn'].
+  - simpl. reflexivity.
+  - simpl. rewrite -> IHn'. reflexivity.
+Qed.
+
+Lemma addnSm : forall n m, n + S m = S (n+ m).
+Proof.
+  induction n as [| n' IHn'].
+  - simpl. intro m. reflexivity.
+  - simpl. intro m. rewrite -> (IHn' m). reflexivity.
+Qed.
+
+Lemma addcom : forall n m, n + m = m + n.
+  induction n as [| n' IHn'].
+  - simpl. intro. rewrite -> (addn0 m). reflexivity.
+  - intro. simpl. rewrite -> (addnSm m n'). rewrite -> (IHn' m). reflexivity.
+Qed.  
+
+Lemma addassoc : forall l n m, l + n + m = l + (n + m).
+  induction l as [| l' IHl'].
+  - simpl. reflexivity.
+  - simpl. intros n m. rewrite -> (IHl' n m). reflexivity.
+Qed.
+(*************************************************)
+
+
+
+
+
+
+

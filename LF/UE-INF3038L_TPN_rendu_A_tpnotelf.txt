@@ -1,0 +1,308 @@
+(*
+LIFLF - TP noté - lundi 4 décembre 2023 8h00
+
+Evaluation pratique en temps limité : 30 minutes
+
+À REPONDRE EN COMPLÉTANT DIRECTEMENT CE FICHIER
+
+Fichier à téléverser dans Tomuss à 8h30 au plus tard dans la case "TPN/rendu_A".
+*)
+
+
+
+(* PARTIE 1 - AUTOMATES *)
+(*----------------------------------------------------------------------------*)
+
+(* Définitions nécessaires pour la suite des exercices *)
+
+Require Import Nat.
+Inductive Alphabet : Type :=
+| a : Alphabet
+| b : Alphabet
+| c : Alphabet.
+Definition comp_alphabet (x y : Alphabet) : bool :=
+  match x with
+  | a => match y with a => true  | b => false | c => false end
+  | b => match y with a => false | b => true  | c => false end
+  | c => match y with a => false | b => false | c => true  end
+end.
+Require Export List.
+Import ListNotations.
+Fixpoint appartient (x : nat) (l : list nat) : bool :=
+  match l with
+  | [] => false
+  | h::rl => (Nat.eqb x h) || (appartient x rl)
+  end.
+Fixpoint trouve (assoc : list (Alphabet * nat)) (key : Alphabet) : option nat :=
+  match assoc with
+    | [] => None
+    | h::rassoc => if (comp_alphabet key (fst h)) then (Some (snd h))
+                   else trouve rassoc key
+  end.
+Inductive Automate : Type :=
+    automate : list nat -> list Alphabet -> (nat -> Alphabet -> option nat) -> nat -> list nat -> Automate.
+Definition etats (M : Automate) :  list nat :=
+  match M with
+    automate ql _ _ _ _ => ql
+  end.
+Definition symboles (M : Automate) :  list Alphabet :=
+  match M with
+    automate _ sigma _ _ _ => sigma
+  end.
+Definition initial  (M : Automate) :  nat :=
+  match M with
+    automate _ _ _ q0 _ => q0
+  end.
+Definition acceptant  (M : Automate) (q : nat) : bool  :=
+  match M with
+    automate _ _ _ _ lF => (appartient q lF)
+  end.
+Definition transition  (M : Automate) (q : nat) (c : Alphabet) : option nat :=
+  match M with
+    automate _ _ f _ _ => f q c
+  end.
+Fixpoint execute (M : Automate)  (q : nat) (w : list Alphabet) : option nat :=
+  match w with
+  | [] => Some q
+  | h::rw => match transition M q h with
+             | None => None
+             | Some e => execute M e rw end
+  end.
+Definition reconnait (M : Automate) (w : list Alphabet) : bool :=
+  match (execute M (initial M) w) with
+  | None => false
+  | Some e => acceptant M e
+  end.
+
+
+(* Soit l'alphabet {a,b}.
+   Soit L le langage des mots contenant un nombre pair de a et un nombre impair de b. *)
+
+(* QUESTION 1a *)
+(* Définissez l'automate complet "M_contient_un_nb_pair_de_a_et_un_nb_impair_de_b" à quatre états qui accepte le langage L. *)
+
+(* QUESTION 1b *)
+(* Vérifiez que votre automate accepte le mot b et le mot abaabba, et refuse le mot vide et le mot bba. *)
+
+
+(* PARTIE 2 - QUELQUES FONCTIONS *)
+(*----------------------------------------------------------------------------*)
+
+Check Nat.eqb.
+
+(* QUESTION 2a *)
+(* Définissez la fonction "map"
+        Paramètres : une liste de nat l et une fonction f : nat -> nat
+        Retour : la liste résultant de l'application de la fonction f à tous les éléments de la liste l
+*)
+
+
+Fixpoint map (l : list nat) (f : nat-> nat): list nat :=
+match l with
+|[]=> []
+|n::h => (f n)::(map h f)
+end.
+
+(* QUESTION 2b *)
+(* Définissez la fonction "puissance_4" 
+        Paramètres : un nat n
+        Retour : n élevé à la puissance 4
+*)
+
+
+Definition puissance_4 (n : nat) : nat :=
+match n with
+|O => O
+|S toto => S(toto) * S(toto) * S(toto)*S(toto)
+end.  
+
+(* Décommentez les exemples *)
+
+Goal (puissance_4 2) = 16.
+cbv. reflexivity. Qed.
+Goal (puissance_4 0) = 0.
+cbv. reflexivity. Qed.
+
+
+(* QUESTION 2c *)
+(* Définissez la fonction "map_puissance_4" 
+        Paramètres : une list de nat l
+        Retour : la liste l avec chaque élément élevé à la puissance 4
+*)
+
+
+Fixpoint map_puissance_4 (l : list nat) : list nat :=
+match l with
+|[] => []
+|n::h => (puissance_4 n)::(map_puissance_4 h)
+end.
+
+(* Décommentez les exemples *)
+
+Goal (map_puissance_4 [1 ; 3 ; 2]) = [1 ; 81 ; 16].
+cbv. reflexivity. Qed.
+Goal (map_puissance_4 []) = [].
+cbv. reflexivity. Qed.
+
+
+(* QUESTION 2d *)
+(* Définissez la fonction "supprime"
+        Paramètres : un nat n et une liste de nat l
+        Retour : la liste l sans la première occurence de n (le cas échéant), la liste l elle-même sinon
+*)
+
+
+Fixpoint supprime (n : nat) (l : list nat) : list nat :=
+match l with
+|[]=>[]
+|e::h => match Nat.eqb n e with
+        |true=>h
+        |false => e::(supprime n h)
+end
+end.
+
+
+(* Décommentez les exemples *)
+
+Goal supprime 2 [1; 2; 3; 4] = [1; 3; 4].
+cbv. reflexivity. Qed.
+Goal supprime 5 [1; 2; 3; 4] = [1; 2; 3; 4].
+cbv. reflexivity. Qed.
+
+
+(* QUESTION 2e *)
+(* Définissez la fonction "ex"
+        Paramètres : une fonction p : nat -> bool et une liste de nat l
+        Retour : true s'il existe un élément n0 de l tel que (p n0) = true, false sinon
+*)
+
+
+Fixpoint ex (p : nat->bool) (l : list nat) : bool :=
+match l with
+|[] => false
+|n::h => match p n with
+        |true => true
+        |false => ex p h
+end
+end.
+
+(* Décommentez les exemples *)
+
+Goal ex even [1;2;3;4] = true.
+cbv. reflexivity. Qed.
+Goal ex even [1;3;5;7] = false.
+cbv. reflexivity. Qed.
+Goal ex even [] = false.
+cbv. reflexivity. Qed.
+
+
+(* QUESTION 2f *)
+(* Définissez la fonction "zip"  list nat * list bool
+        Paramètre : une paire de listes de nat
+        Retour : la liste de paires correspondantes
+   Exemple : voir les tests unitaires ci-dessous
+*)
+
+
+Fixpoint zip (l : list nat) (lb : list bool) : (list nat)*(list bool) :=
+match (l, lb) with
+|([],[]) => ([],[])
+
+|n::h => match lb with 
+        |[] => (n::(fst(zip h lb), []))
+        |e::k => (n::(fst(zip h lb), e::(snd(zip h k))))
+end
+end.  
+
+(* Décommentez les exemples *)
+(*
+Goal zip [1; 2] [true; false] = [(1, true); (2, false)].
+cbv. reflexivity. Qed.
+Goal zip [1] [true; false] = [(1, true)].
+cbv. reflexivity. Qed.
+Goal zip [1; 2] [true] = [(1, true)].
+cbv. reflexivity. Qed.
+*)
+
+(* QUESTION 2g *)
+(* Définissez la fonction "unzip"
+        Paramètre : une liste de paires de nat
+        Retour : la paire de listes correspondantes
+   Exemple : voir les tests unitaires ci-dessous
+*)
+
+(* Décommentez les exemples *)
+(*
+Goal unzip [(1, true); (2, false)] = ([1; 2], [true; false]).
+cbv. reflexivity. Qed.
+*)
+
+
+(* PARTIE 3 - COMPARAISON D'OPTION NAT *)
+(*----------------------------------------------------------------------------*)
+
+(* On rappelle la définition de "option A" (NE PAS DÉCOMMENTER, c'est un type prédéfini) :
+   Inductive option (A : Type) : Type := 
+     | Some : A -> option A
+     | None : option A
+*)
+
+(* Les lemmes suivants pourront être utiles pour la suite *)
+Lemma eqb_true_eq : forall n m, Nat.eqb n m = true -> n = m.
+Proof.
+apply PeanoNat.Nat.eqb_eq.
+Qed.
+
+Lemma eq_eqb_true : forall n m, n = m -> Nat.eqb n m = true.
+Proof.
+apply PeanoNat.Nat.eqb_eq.
+Qed.
+
+(* RAPPEL.
+   On peut utiliser un théorème spécialisé aux bons paramètres fixés :
+   par exemple
+   pose (eqb_true_eq "n_fixe" "m_fixe") as "nom_de_la_nouvelle_hypothèse".
+*)
+
+(* QUESTION 3a *)
+(* Définissez la fonction "comp_option_nat"
+   Paramètres : deux "option nat"
+   Retour : true si les deux options nat sont égaux, false sinon. Par convention, comp_option_nat None None = true
+*)
+
+Definition comp_option_nat (a b : option nat) : bool :=
+match a, b with
+|None, None => true
+|Some toto, None => false
+|None, Some titi => false
+|Some toto, Some titi => Nat.eqb toto titi
+end.
+
+(* Décommentez les exemples *)
+
+Goal comp_option_nat None None = true.
+cbv. reflexivity. Qed.
+Goal comp_option_nat (Some 2) (Some 2)  = true.
+cbv. reflexivity. Qed.
+Goal comp_option_nat (Some 2) (Some 3)  = false.
+cbv. reflexivity. Qed.
+
+
+(* QUESTION 3b *)
+(* Prouvez que votre fonction de comparaison est correcte et complète :
+   La fonction "comp_option_nat" retourne true SI ET SEULEMENT SI ses deux arguments sont égaux. *)
+
+
+Lemma th : forall (x y : option nat), comp_option_nat x y = true -> x=y /\ x=y -> comp_option_nat x y = true.
+Proof.
+intro a.
+intro b.
+destruct a, b.
+*induction n as [| v s].
+**simpl.
+
+
+
+
+
+(*----------------------------------------------------------------------------*)
